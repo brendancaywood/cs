@@ -9,7 +9,7 @@ ship_locations = {}
 
 # Saturation 2 is better though
 OPTIMUM_HALITE_SATURATION = constants.MAX_HALITE / 2
-
+COUNTER = 0
 
 def check_perimeter(game_map):
     spots = []
@@ -29,14 +29,23 @@ def check_perimeter(game_map):
     else:
         return spots
 
-
 def check_collision(ship, move, issa_map, ya_boy):
+    global COUNTER
     move = Position(move[0], move[1])
     for ship_id in ship_locations:
         the_ship = ship_locations[ship_id]['ship']
+        logging.info("ship locs:{}".format(ship_locations))
         the_next_move = ship_locations[ship_id]['next_move']
-        logging.info('NEXT MOVE: {} {}'.format(the_next_move, move))
-        if the_next_move == move \
+        if COUNTER == 0:
+            the_next_move1 = the_next_move.x
+            the_next_move2 = the_next_move.y
+            COUNTER = COUNTER + 1
+        else:
+            the_next_move1 = the_next_move[0]
+            the_next_move2 = the_next_move[1]
+        next_move = (the_next_move1, the_next_move2)
+        logging.info('NEXT MOVE: {} {}'.format(next_move, move))
+        if Position(the_next_move1, the_next_move2) == move \
                 and the_ship != ship:
             continue
         else:
@@ -75,11 +84,13 @@ def make_move(ship, ya_boy, issa_map):
         if issa_map[ship.position].halite_amount >= OPTIMUM_HALITE_SATURATION:
             ship_locations[ship.id]['next_move'] = Direction.Still
         else:
-            ship_locations[ship.id]['next_move'] = max(
-                    check_perimeter(issa_map))
+            logging.info("shits going haywire")
+            ship_locations[ship.id]['next_move'] = Position(max(
+                    check_perimeter(issa_map)))
 
 
 def check_ship_nearby(ship_id, ya_boy):
+    logging.info("whoop")
     return ship_locations[ship_id]['next_move'] != ya_boy.shipyard.position
 
 
@@ -128,9 +139,10 @@ while True:
 
     for ship_id in ship_locations:
         logging.info(
-                'SHIP INFO: {}'.format(ship_locations[ship_id]['next_move']))
+                'SHIP INFO3: {}'.format(ship_locations[ship_id]['next_move']))
         command_queue.append(
                 ship_locations[ship_id]['ship'].move(
                     ship_locations[ship_id]['next_move']))
 
     game.end_turn(command_queue)
+    
