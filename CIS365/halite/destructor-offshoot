@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import hlt
 from hlt import constants
 from hlt import player
@@ -7,13 +8,10 @@ import random
 import copy
 import logging
 
-SHIP_NUM_MAX = 100
-SHIP_TURN_MAX = 500
-SHIP_RETURN_AMOUNT = 500
-SHIP_MOVE_AMOUNT = 1
 
 drop_locations = []
 home_drop = True
+ship_locations = {}
 
 
 def __init__(self):
@@ -24,9 +22,49 @@ def __init__(self):
     self.direction = Direction()
     self.ships = self.me.get_ships()
     self.dropoff_count = 0
-    self.ship_locations = {}
     logging.info('Bot created, ID is: {}.'.format(self.game.my_id))
     
+    
+def check_move(ship, direction):
+    if direction != "Still":
+        if direction ==  Direction.North:
+            if ship.position.directional_offset(Direction.North) not in ship_locations:
+                adjust_ship_map(ship, (0, 1))
+                return True
+            
+        if direction == Direction.South:
+            if ship.position.directional_offset(Direction.South) not in ship_locations:
+                adjust_ship_map(ship, (0, -1))
+                return True
+            
+        if direction == Direction.East:
+            if ship.position.directional_offset(Direction.East) not in ship_locations:
+                adjust_ship_map(ship, (1, 0))
+                return True
+            
+        if direction == Direction.West:
+            if ship.position.directional_offset(Direction.West) not in ship_locations:
+                adjust_ship_map(ship, (-1, 0))
+                return True
+        return False
+    
+def find_move(ship, move_vector):
+    tmp_vec = copy.deepcopy(move_vector)
+    
+    if tmp_vec:
+        random_move = random.choice(tmp_vec)
+        if random_move == "Still":
+            return "Still"
+        checked_move = check_move(ship, random_move)    
+    
+        if not checked_move:
+            tmp_vec.remove(random_move)
+            find_move(ship, tmp_vec)
+        
+        else:
+            return random_move
+    else:
+        return "Still"
     
 def check_ship_nearby(move_vector):
     tmp_vec = copy.deepcopy(move_vector)
@@ -53,8 +91,8 @@ def make_drop(ship):
     else:
         return True
         
-def adjust_ship_map(self, ship, x, y):
-    self.ship_locations[ship.id] = (x, y)
+def adjust_ship_map(ship, location):
+    ship_locations[ship.id] = location
 
 def make_dropoff(self, ship):
     if self.dropoff_count == 4:
@@ -145,6 +183,53 @@ def make_move(ship, move_vector):
 
     return Direction.Still
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def make_smart_move(ship, move_vector): 
+    tmp_vec = copy.deepcopy(move_vector)
+    
+    if ship.halite_amount >= constants.MAX_HALITE * 0.3:
+        ship_status[ship.id] = "returning"
+        full_move = game_map.naive_navigate(ship, find_drop(ship.position))
+        logging.info("FULL MOVE: {}".format(full_move))
+        return full_move
+            
+    if not ship_status[ship.id] == "returning":
+        direction_var = find_move(ship, tmp_vec)
+        logging.info("DIRECTION VARIABLE: {}".format(direction_var))
+        if direction_var == "Still":
+            return Direction.Still
+        
+        if direction_var == (0, 1):
+            return Direction.North
+            
+        if direction_var == (0, -1):
+            return Direction.South
+            
+        if direction_var == (1, 0):
+            return Direction.East
+            
+        if direction_var == (-1, 0):
+            return Direction.West
+            
+
+    return Direction.Still
+    
+    
+    
+    
+    
+    
+    
+    
 game = hlt.Game()
 game.ready("ANNIHILATOR")
 logging.info("Player ID is {}.".format(game.my_id))
@@ -167,6 +252,7 @@ while True:
     
     for ship in me.get_ships():
         logging.info("Ship {} has {} halite.".format(ship.id, ship.halite_amount))
+        adjust_ship_map(ship, ship.position)
 
         if ship.id not in ship_status:
             ship_status[ship.id] = "exploring"
@@ -181,12 +267,13 @@ while True:
             ship_status[ship.id] = "returning"
 
 
-        best_move = make_move(ship, move_vector)
+#        best_move = make_move(ship, move_vector)
+        best_move = make_smart_move(ship, move_vector)
         command_queue.append(ship.move(best_move))
 
     logging.info("Move list: {}".format(command_queue))
 
-    numShips = len(me.get_ships())
+
     # If the game is in the first 300 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
     if game.turn_number % 6 == 0 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
