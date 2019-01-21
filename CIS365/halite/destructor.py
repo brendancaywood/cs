@@ -9,7 +9,7 @@ import logging
 
 SHIP_NUM_MAX = 100
 SHIP_TURN_MAX = 500
-SHIP_RETURN_AMOUNT = 800
+SHIP_RETURN_AMOUNT = 500
 SHIP_MOVE_AMOUNT = 1
 
 drop_locations = []
@@ -116,7 +116,7 @@ def make_move(ship, move_vector):
                 
             
     if tmp_vec:
-        if ship.halite_amount >= constants.MAX_HALITE * 0.5:
+        if ship.halite_amount >= SHIP_RETURN_AMOUNT:
             ship_status[ship.id] = "returning"
             full_move = game_map.naive_navigate(ship, find_drop(ship.position))
             logging.info("FULL MOVE: {}".format(full_move))
@@ -133,8 +133,8 @@ def make_move(ship, move_vector):
                     tmp_vec.remove(Direction.East)
                 if var == "West":
                     tmp_vec.remove(Direction.West)
-            
-        return random.choice(tmp_vec)
+        elif me.halite_amount >= SHIP_MOVE_AMOUNT:    
+            return random.choice(tmp_vec)
 
     return Direction.Still
     
@@ -182,7 +182,7 @@ while True:
     numShips = len(me.get_ships())
     # If the game is in the first 300 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if game.turn_number % 6 == 0 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    if game.turn_number % 6 == 0 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied and SHIP_NUM_MAX > numShips and SHIP_TURN_MAX > game.turn_number:
         #if not check_ship_nearby(move_vector):
         command_queue.append(me.shipyard.spawn())
 
